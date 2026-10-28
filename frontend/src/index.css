@@ -1,0 +1,197 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Design tokens — RGB channels so Tailwind opacity modifiers work. */
+:root {
+  --bg: 247 247 248;
+  --surface: 255 255 255;
+  --elevated: 255 255 255;
+  --hover: 241 241 243;
+  --line: 229 229 233;
+  --line-strong: 212 212 218;
+  --fg: 24 24 27;
+  /* Text tokens are tuned for >= 4.5:1 on surface and hover backgrounds. */
+  --muted: 82 85 94;
+  --faint: 102 105 114;
+  --accent: 88 94 226;
+  --accent-fg: 255 255 255;
+  --success: 20 120 57;
+  --danger: 196 38 38;
+  --warning: 150 90 6;
+  --info: 37 99 235;
+  color-scheme: light;
+}
+
+.dark {
+  --bg: 10 11 13;
+  --surface: 16 17 19;
+  --elevated: 23 24 27;
+  --hover: 27 28 32;
+  --line: 34 36 40;
+  --line-strong: 46 48 54;
+  --fg: 232 233 236;
+  --muted: 160 163 172;
+  --faint: 134 137 146;
+  --accent: 124 131 247;
+  --accent-fg: 255 255 255;
+  --success: 63 185 107;
+  --danger: 240 84 84;
+  --warning: 226 168 44;
+  --info: 92 152 246;
+  color-scheme: dark;
+}
+
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    @apply bg-bg text-sm text-fg antialiased;
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+    font-feature-settings: 'cv11', 'ss01';
+  }
+
+  ::selection {
+    @apply bg-accent/30;
+  }
+
+  /* Preflight resets buttons to the default cursor; clickable controls should signal it. */
+  button:not(:disabled),
+  [role='button'],
+  [role='menuitem'],
+  [role='tab'],
+  [role='radio'],
+  [role='switch'],
+  select,
+  summary {
+    cursor: pointer;
+  }
+
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgb(var(--line-strong)) transparent;
+  }
+}
+
+@layer components {
+  .input {
+    @apply h-9 w-full rounded-md border border-line bg-surface px-3 text-sm text-fg shadow-sm transition-[color,background-color,border-color,box-shadow] duration-150 ease-out placeholder:text-faint hover:border-line-strong focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20 disabled:cursor-not-allowed disabled:opacity-60;
+  }
+
+  .input-error {
+    @apply border-danger/70 hover:border-danger focus:border-danger focus:ring-danger/20;
+  }
+
+  .label {
+    @apply mb-1.5 block text-xs font-medium text-fg;
+  }
+
+  /* Faint line grid for marketing backgrounds; fades out towards the edges. */
+  .bg-grid {
+    background-image: linear-gradient(to right, rgb(var(--line) / 0.6) 1px, transparent 1px),
+      linear-gradient(to bottom, rgb(var(--line) / 0.6) 1px, transparent 1px);
+    background-size: 48px 48px;
+    mask-image: radial-gradient(ellipse 70% 60% at 50% 0%, #000 40%, transparent 100%);
+  }
+
+  /* Landing hero: the grid is rendered by WebGL as a continuous 3D wave surface
+     (HeroGrid.jsx). The stage keeps the original .bg-grid mask so the fade-out
+     region is unchanged; without WebGL it falls back to .bg-grid itself. */
+  .hero-grid-stage {
+    mask-image: radial-gradient(ellipse 70% 60% at 50% 0%, #000 40%, transparent 100%);
+  }
+
+  .focus-ring {
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 focus-visible:ring-offset-0;
+  }
+}
+
+/* Keep Recharts from drawing browser focus outlines on click. */
+.recharts-wrapper *:focus,
+.recharts-surface:focus {
+  outline: none;
+}
+
+/* ---- Motion system --------------------------------------------------------
+   Entrance animations use `backwards` fill so nothing lingers after they end;
+   everything here is neutralised by the reduced-motion rules below. */
+
+/* Loading placeholders: a soft sheen over the existing skeleton colour. */
+.skeleton {
+  background-image: linear-gradient(90deg, transparent 0%, rgb(var(--fg) / 0.07) 50%, transparent 100%);
+  background-size: 200% 100%;
+  background-repeat: no-repeat;
+  animation: shimmer 1.6s ease-in-out infinite;
+}
+@keyframes shimmer {
+  from { background-position: 150% 0; }
+  to { background-position: -50% 0; }
+}
+
+/* Staggered entrance for a group's direct children (stat cards, chart rows). */
+.stagger-children > * {
+  animation: rise 340ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+.stagger-children > *:nth-child(2) { animation-delay: 40ms; }
+.stagger-children > *:nth-child(3) { animation-delay: 80ms; }
+.stagger-children > *:nth-child(4) { animation-delay: 120ms; }
+.stagger-children > *:nth-child(5) { animation-delay: 160ms; }
+.stagger-children > *:nth-child(n + 6) { animation-delay: 200ms; }
+@keyframes rise {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* Scroll reveal (landing page). Only active once JS has added .reveal-ready and
+   the user allows motion, so content is never hidden without the observer. */
+[data-reveal] {
+  /* Reveal (opacity/transform) can be staggered with --reveal-delay; hover
+     feedback (border/shadow) keeps its own short, undelayed timing. */
+  transition-property: opacity, transform, border-color, box-shadow;
+  transition-duration: 520ms, 520ms, 200ms, 200ms;
+  transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  transition-delay: var(--reveal-delay, 0ms), var(--reveal-delay, 0ms), 0ms, 0ms;
+}
+[data-reveal][data-visible] {
+  /* Once revealed, hover lifts respond immediately. */
+  transition-duration: 200ms;
+  transition-delay: 0ms;
+}
+.reveal-ready [data-reveal]:not([data-visible]) {
+  opacity: 0;
+  transform: translateY(14px);
+}
+
+/* Smooth in-page anchor scrolling ("Explore Features"), only for users who allow motion. */
+@media (prefers-reduced-motion: no-preference) {
+  html:not(.reduce-motion) {
+    scroll-behavior: smooth;
+  }
+}
+
+/* Honour both the in-app setting and the OS-level preference. */
+.reduce-motion *,
+.reduce-motion *::before,
+.reduce-motion *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  animation-delay: 0ms !important;
+  transition-delay: 0ms !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
+    transition-delay: 0ms !important;
+  }
+}
